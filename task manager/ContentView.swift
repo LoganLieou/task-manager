@@ -7,15 +7,47 @@
 
 import SwiftUI
 
+func listRunningTasks() -> [String] {
+    let process = Process()
+    var result: [String] = []
+    process.launchPath = "/bin/ps"
+    process.arguments = ["-A", "-o", "pid,comm"]
+    
+    let outputPipe = Pipe()
+    process.standardOutput = outputPipe
+    
+    process.launch()
+    
+    let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+    if let outputString = String(data: outputData, encoding: .utf8) {
+        result = outputString.components(separatedBy: "\n")
+    }
+    
+    process.waitUntilExit()
+    return result
+}
+
 struct ContentView: View {
+    @State private var tasks = listRunningTasks()
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundColor(.accentColor)
-            Text("Hello, world!")
+        ScrollView (.vertical) {
+            VStack (alignment: .leading) {
+                ForEach(tasks, id: \.self) { task in
+                    if (!task.contains("PID")) {
+                        HStack {
+                            Button(action: {
+                                print("hit!")
+                            }) {
+                                Text("❌")
+                            }
+                            Text(task)
+                        }
+                    }
+                }
+            }
+            .padding()
         }
-        .padding()
+        .frame(height: 500)
     }
 }
 
